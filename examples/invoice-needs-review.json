@@ -1,0 +1,10 @@
+{
+  "supplier_name": "Proveedor Demo SL",
+  "supplier_tax_id": "B12345678",
+  "invoice_number": "DEMO-2026-002",
+  "issue_date": "2026-11-20",
+  "currency": "EUR",
+  "net_amount": "100.00",
+  "tax_amount": "21.00",
+  "total_amount": "125.00"
+}

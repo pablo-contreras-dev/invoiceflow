@@ -1,0 +1,166 @@
+{
+  "name": "InvoiceFlow - Intake and review routing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoiceflow/intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d4df9cbc-08a2-46a2-af9d-1c2bf61447aa",
+      "name": "Receive invoice",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 300],
+      "webhookId": "invoiceflow-intake"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/invoices",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000,
+          "response": { "response": { "neverError": true, "fullResponse": true } }
+        }
+      },
+      "id": "5ab0fd11-346b-42cc-8c61-1d51f865f89f",
+      "name": "Validate and store invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 399,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8526625c-4bb7-4e1c-8df1-09fd23422aef",
+      "name": "API returned an error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": { "responseCode": "={{ $json.statusCode }}" }
+      },
+      "id": "67ba15f7-c8e7-41ca-853f-646f88ecc856",
+      "name": "Respond - API error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [960, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "rightValue": "needs_review",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bc63c37a-7858-4977-b51b-d777927712e7",
+      "name": "Needs manual review?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "invoiceflow@example.test",
+        "toEmail": "review@example.test",
+        "subject": "InvoiceFlow: invoice requires review",
+        "emailFormat": "text",
+        "text": "InvoiceFlow recorded invoice ID {{ $('Validate and store invoice').item.json.body.id }} for manual review. Reason(s): {{ $('Validate and store invoice').item.json.body.reasons.join(', ') }}. Open the InvoiceFlow review queue to inspect it.",
+        "options": {}
+      },
+      "id": "1e236ed2-03fc-47c8-acbe-6b3e8f068de1",
+      "name": "Email review alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1200, 200],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Validate and store invoice').item.json.body }}",
+        "options": { "responseCode": 201 }
+      },
+      "id": "a0436d9f-044d-4be3-a441-e2a9d51a4d79",
+      "name": "Respond - needs review",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1440, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": { "responseCode": 201 }
+      },
+      "id": "05df2f27-ff8d-4b0c-a21f-879615254a3d",
+      "name": "Respond - validated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1200, 400]
+    }
+  ],
+  "connections": {
+    "Receive invoice": {
+      "main": [[{ "node": "Validate and store invoice", "type": "main", "index": 0 }]]
+    },
+    "Validate and store invoice": {
+      "main": [[{ "node": "API returned an error?", "type": "main", "index": 0 }]]
+    },
+    "API returned an error?": {
+      "main": [
+        [{ "node": "Respond - API error", "type": "main", "index": 0 }],
+        [{ "node": "Needs manual review?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Needs manual review?": {
+      "main": [
+        [{ "node": "Email review alert", "type": "main", "index": 0 }],
+        [{ "node": "Respond - validated", "type": "main", "index": 0 }]
+      ]
+    },
+    "Email review alert": {
+      "main": [[{ "node": "Respond - needs review", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1d8c32fb-1715-4e19-afb9-77c925a6c218",
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": []
+}
