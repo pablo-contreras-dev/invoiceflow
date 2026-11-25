@@ -19,6 +19,16 @@
       "parameters": {
         "method": "POST",
         "url": "http://api:8000/invoices",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.headers['idempotency-key'] || ('n8n-' + $execution.id) }}"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json.body }}",
