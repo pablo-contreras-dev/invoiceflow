@@ -93,6 +93,8 @@ Invoke-RestMethod -Uri http://localhost:5678/webhook/invoiceflow/intake -Method 
 
 La demo debe explicar el problema, enseñar un caso válido y otro que requiera revisión, y cuantificar el resultado con métricas reproducibles (por ejemplo, tiempo manual estimado frente al flujo automatizado). No se incluyen ahorros ni resultados inventados: se medirán durante la demo con datos de ejemplo.
 
+La [guía paso a paso](docs/demo-walkthrough.md) explica cómo ejecutar los escenarios de demo. La [ficha del caso](docs/portfolio-case-study.md) resume el problema, la arquitectura y los resultados que faltan medir.
+
 ## Licencia
 
 Pendiente de definir.
