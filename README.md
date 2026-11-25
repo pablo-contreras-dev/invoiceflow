@@ -96,3 +96,7 @@ La demo debe explicar el problema, enseñar un caso válido y otro que requiera 
 ## Licencia
 
 Pendiente de definir.
+
+## Idempotencia de entrada
+
+La API acepta `Idempotency-Key` (8–128 caracteres). Si se repite la misma petición con la misma clave, devuelve el registro original con `replayed: true` sin crear otro intento. La clave no puede reutilizarse con un cuerpo distinto (`409 Conflict`). Para registrar deliberadamente otra presentación de una factura ya recibida, envía una clave nueva o no envíes el encabezado; el sistema la marcará como posible duplicado.

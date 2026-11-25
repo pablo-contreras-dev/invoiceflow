@@ -2,19 +2,21 @@ from __future__ import annotations
 
 import os
 import csv
+import hashlib
+import json
 from io import StringIO
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import Date, DateTime, Index, Numeric, String, create_engine, func, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./invoiceflow.sqlite3")
@@ -29,7 +31,10 @@ class Base(DeclarativeBase):
 
 class InvoiceRecord(Base):
     __tablename__ = "invoice_records"
-    __table_args__ = (Index("ix_invoice_supplier_invoice", "supplier_tax_id", "invoice_number"),)
+    __table_args__ = (
+        Index("ix_invoice_supplier_invoice", "supplier_tax_id", "invoice_number"),
+        Index("uq_invoice_records_idempotency_key", "idempotency_key", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     supplier_name: Mapped[str] = mapped_column(String(200))
@@ -43,6 +48,8 @@ class InvoiceRecord(Base):
     status: Mapped[str] = mapped_column(String(24), index=True)
     reasons: Mapped[str] = mapped_column(String(500), default="")
     duplicate_of_id: Mapped[int | None] = mapped_column(nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
@@ -65,6 +72,7 @@ class InvoiceOut(BaseModel):
     reasons: list[str]
     duplicate_of_id: int | None
     created_at: datetime
+    replayed: bool = False
 
 
 class InvoiceSummary(InvoiceOut):
@@ -97,6 +105,25 @@ def get_session():
         yield session
 
 
+def payload_fingerprint(payload: InvoiceIn) -> str:
+    normalized = payload.model_dump(mode="json")
+    for field in ("net_amount", "tax_amount", "total_amount"):
+        normalized[field] = format(getattr(payload, field), ".2f")
+    canonical = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def invoice_output(record: InvoiceRecord, *, replayed: bool = False) -> InvoiceOut:
+    return InvoiceOut(
+        id=record.id,
+        status=record.status,  # type: ignore[arg-type]
+        reasons=record.reasons.split(",") if record.reasons else [],
+        duplicate_of_id=record.duplicate_of_id,
+        created_at=record.created_at,
+        replayed=replayed,
+    )
+
+
 @app.get("/health", tags=["operations"])
 def health(session: Annotated[Session, Depends(get_session)]) -> dict[str, str]:
     try:
@@ -107,7 +134,27 @@ def health(session: Annotated[Session, Depends(get_session)]) -> dict[str, str]:
 
 
 @app.post("/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED, tags=["invoices"])
-def receive_invoice(payload: InvoiceIn, session: Annotated[Session, Depends(get_session)]) -> InvoiceOut:
+def receive_invoice(
+    payload: InvoiceIn,
+    session: Annotated[Session, Depends(get_session)],
+    idempotency_key: Annotated[
+        str | None,
+        Header(alias="Idempotency-Key", min_length=8, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$"),
+    ] = None,
+) -> InvoiceOut:
+    request_hash = payload_fingerprint(payload)
+    if idempotency_key:
+        previous_request = session.scalar(
+            select(InvoiceRecord).where(InvoiceRecord.idempotency_key == idempotency_key)
+        )
+        if previous_request is not None:
+            if previous_request.request_hash != request_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Idempotency-Key was already used with a different invoice payload",
+                )
+            return invoice_output(previous_request, replayed=True)
+
     reasons: list[str] = []
     if payload.net_amount + payload.tax_amount != payload.total_amount:
         reasons.append("total_mismatch")
@@ -128,22 +175,32 @@ def receive_invoice(payload: InvoiceIn, session: Annotated[Session, Depends(get_
         status="needs_review" if reasons else "validated",
         reasons=",".join(reasons),
         duplicate_of_id=duplicate.id if duplicate else None,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash if idempotency_key else None,
         created_at=datetime.now(timezone.utc),
     )
     session.add(record)
     try:
         session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        if idempotency_key:
+            previous_request = session.scalar(
+                select(InvoiceRecord).where(InvoiceRecord.idempotency_key == idempotency_key)
+            )
+            if previous_request is not None:
+                if previous_request.request_hash != request_hash:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Idempotency-Key was already used with a different invoice payload",
+                    ) from exc
+                return invoice_output(previous_request, replayed=True)
+        raise HTTPException(status_code=500, detail="Could not persist invoice record") from exc
     except SQLAlchemyError as exc:
         session.rollback()
         raise HTTPException(status_code=500, detail="Could not persist invoice record") from exc
     session.refresh(record)
-    return InvoiceOut(
-        id=record.id,
-        status=record.status,  # type: ignore[arg-type]
-        reasons=record.reasons.split(",") if record.reasons else [],
-        duplicate_of_id=record.duplicate_of_id,
-        created_at=record.created_at,
-    )
+    return invoice_output(record)
 
 
 @app.get("/invoices", response_model=InvoicePage, tags=["invoices"])

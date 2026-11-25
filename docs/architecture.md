@@ -56,11 +56,13 @@ El workflow exportado en `automation/invoiceflow-intake.json` recibe un POST, re
 
 En el Compose local, n8n llama a `http://api:8000` por la red privada de Docker. Desde el host, se usa `http://localhost:5678`.
 
+El nodo HTTP reenvía el `Idempotency-Key` del emisor. Si no existe, genera `n8n-{executionId}` para que una repetición de la misma ejecución sea idempotente.
+
 ## Siguiente hito
 
-1. Añadir idempotencia de entrada para distinguir reintentos de negocio de una factura duplicada.
-2. Preparar capturas y datos de demostración para la presentación del portfolio.
-3. Ampliar la auditoría de notificaciones y añadir un modo de reenvío manual.
+1. Preparar capturas y datos de demostración para la presentación del portfolio.
+2. Ampliar la auditoría de notificaciones y añadir un modo de reenvío manual.
+3. Añadir búsqueda por proveedor o número de factura.
 
 ## Seguridad y privacidad de la demo
 
