@@ -15,6 +15,8 @@
 received -> validated
          -> needs_review
          -> failed
+needs_review -> validated (approved)
+             -> rejected (rejected)
 ```
 
 `needs_review` representa un dato ausente, inconsistente o un posible duplicado que requiere decisión humana. `failed` se reserva para fallos técnicos tras aplicar la política de reintentos. Cada transición debe guardar fecha, resultado y detalle suficiente para diagnosticarla.
@@ -42,12 +44,16 @@ Los importes se representan como cadenas decimales en la entrada para evitar err
 - `GET /health`: comprobación básica de disponibilidad.
 - `POST /invoices`: recibe JSON, valida tipos y límites, compara `net_amount + tax_amount` con `total_amount`, comprueba duplicados y registra cada intento.
 - `GET /invoices/{id}`: consulta el resultado registrado.
+- `POST /invoices/{id}/review`: aprueba o rechaza una factura pendiente e incorpora una nota y el nombre de quien revisa.
+- `GET /invoices/{id}/reviews`: consulta el historial de decisiones.
 - `GET /invoices?status=needs_review&limit=25&offset=0`: consulta paginada con filtro opcional por estado.
 - `GET /invoices?search=demo&status=needs_review`: busca sin distinguir mayúsculas en proveedor, identificador fiscal o número de factura; permite combinarlo con el estado y la paginación.
 - `GET /invoices/export.csv`: descarga el registro en CSV compatible con Excel y admite filtros opcionales por estado y búsqueda.
 - `GET /docs`: documentación OpenAPI generada por FastAPI.
 
-El endpoint de recepción devuelve `validated` cuando no encuentra incidencias y `needs_review` cuando detecta diferencias o posibles duplicados. Los motivos actuales son `total_mismatch` y `possible_duplicate`. Los errores de entrada se devuelven como `422`; los errores de persistencia, como `500` y el health check como `503` si no hay conexión con la base de datos.
+El endpoint de recepción devuelve `validated` cuando no encuentra incidencias y `needs_review` cuando detecta diferencias o posibles duplicados. Los motivos actuales son `total_mismatch` y `possible_duplicate`. Los errores de entrada se devuelven como `422`; los errores de persistencia, como `500` y el health check como `503` si no hay conexión con la base de datos. Al resolver una revisión, aprobar cambia el estado a `validated`; rechazarlo lo cambia a `rejected`. Solo las facturas `needs_review` pueden resolverse y los intentos repetidos reciben `409`.
+
+Cada decisión y su nota se conservan en `invoice_review_events`; los campos de revisión también aparecen en la factura y en el CSV. El identificador de la persona revisora se introduce manualmente para la demo. La API aún no autentica usuarios, por lo que ese campo no equivale a una identidad verificada.
 
 La exportación usa UTF-8 con BOM para compatibilidad práctica con Excel y antepone un apóstrofo a campos de texto que podrían ejecutarse como fórmulas al abrir el CSV en una hoja de cálculo.
 

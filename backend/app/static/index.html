@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/dashboard/styles.css" />
     <link rel="stylesheet" href="/dashboard/search.css" />
+    <link rel="stylesheet" href="/dashboard/review.css" />
     <script src="/dashboard/app.js" defer></script>
   </head>
   <body>
@@ -81,7 +82,7 @@
                 <input id="invoice-search" type="search" minlength="2" maxlength="120" placeholder="Proveedor o nº factura" autocomplete="off" />
               </label>
               <label class="filter-control"><span class="sr-only">Filtrar por estado</span>
-                <select id="status-filter"><option value="">Todos los estados</option><option value="validated">Validadas</option><option value="needs_review">Revisión pendiente</option></select>
+                <select id="status-filter"><option value="">Todos los estados</option><option value="validated">Validadas</option><option value="needs_review">Revisión pendiente</option><option value="rejected">Rechazadas</option></select>
               </label>
               <button class="icon-button" id="refresh-button" type="button" aria-label="Actualizar facturas" title="Actualizar">
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M16.2 8A6.5 6.5 0 0 0 4.6 5.3L3 7m0 0V3.8M3 7h3.2M3.8 12A6.5 6.5 0 0 0 15.4 14.7L17 13m0 0v3.2M17 13h-3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -90,8 +91,8 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>FACTURA</th><th>PROVEEDOR</th><th>FECHA</th><th class="align-right">IMPORTE</th><th>ESTADO</th></tr></thead>
-              <tbody id="invoice-rows"><tr><td class="table-message" colspan="5">Cargando facturas…</td></tr></tbody>
+              <thead><tr><th>FACTURA</th><th>PROVEEDOR</th><th>FECHA</th><th class="align-right">IMPORTE</th><th>ESTADO</th><th>REVISIÓN</th></tr></thead>
+              <tbody id="invoice-rows"><tr><td class="table-message" colspan="6">Cargando facturas…</td></tr></tbody>
             </table>
           </div>
           <div class="table-footer">
@@ -100,6 +101,23 @@
           </div>
           <div id="error-banner" class="error-banner" role="alert" hidden></div>
         </section>
+        <dialog class="review-dialog" id="review-dialog" aria-labelledby="review-title">
+          <form id="review-form">
+            <div class="dialog-topline"><div class="eyebrow">REVISIÓN MANUAL</div><button class="dialog-close" type="button" id="close-review" aria-label="Cerrar">×</button></div>
+            <h2 id="review-title">Resolver factura</h2>
+            <p class="dialog-description" id="review-invoice-summary"></p>
+            <div class="review-reasons" id="review-reasons"></div>
+            <div class="review-history" id="review-history" aria-live="polite"></div>
+            <div id="decision-fields">
+              <label class="form-label" for="reviewer-name">Persona revisora</label>
+              <input class="form-input" id="reviewer-name" name="reviewer" minlength="2" maxlength="120" required value="Equipo financiero" />
+              <label class="form-label" for="review-note">Nota de revisión <span>(opcional)</span></label>
+              <textarea class="form-input form-textarea" id="review-note" name="note" maxlength="500" rows="3" placeholder="Añade el motivo de la decisión"></textarea>
+            </div>
+            <div id="review-error" class="review-error" role="alert" hidden></div>
+            <div class="dialog-actions"><button class="button button-secondary" type="button" id="reject-invoice">Rechazar</button><button class="button button-primary" type="button" id="approve-invoice">Aprobar factura</button></div>
+          </form>
+        </dialog>
         <footer class="page-footer"><span>InvoiceFlow</span><span>Automatización con trazabilidad · Datos de demostración</span></footer>
       </main>
     </div>

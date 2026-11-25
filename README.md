@@ -93,6 +93,8 @@ Invoke-RestMethod -Uri http://localhost:5678/webhook/invoiceflow/intake -Method 
 
 La demo debe explicar el problema, enseñar un caso válido y otro que requiera revisión, y cuantificar el resultado con métricas reproducibles (por ejemplo, tiempo manual estimado frente al flujo automatizado). No se incluyen ahorros ni resultados inventados: se medirán durante la demo con datos de ejemplo.
 
+La [guía paso a paso](docs/demo-walkthrough.md) explica cómo ejecutar los escenarios de demo. La [ficha del caso](docs/portfolio-case-study.md) resume el problema, la arquitectura y los resultados que faltan medir.
+
 ## Licencia
 
 Pendiente de definir.
@@ -104,3 +106,7 @@ La API acepta `Idempotency-Key` (8–128 caracteres). Si se repite la misma peti
 ## Búsqueda en el panel
 
 El panel permite buscar por nombre de proveedor, identificador fiscal o número de factura (mínimo 2 caracteres) y combinar la búsqueda con el filtro de estado. La API admite `GET /invoices?search=demo&status=needs_review`; la descarga CSV conserva esos mismos filtros.
+
+## Revisión humana
+
+En el panel, abre una factura pendiente, añade el nombre de quien revisa y una nota opcional, y elige **Aprobar** o **Rechazar**. Las decisiones quedan en un historial consultable en `GET /invoices/{id}/reviews` y se exportan en el CSV. La demo no incluye autenticación; el nombre de quien revisa es texto introducido por el usuario, no una identidad verificada.
