@@ -2,6 +2,9 @@ const pageSize = 25;
 let offset = 0;
 let total = 0;
 let activeStatus = "";
+let activeSearch = "";
+let searchTimer;
+let activeRequest;
 
 const rows = document.querySelector("#invoice-rows");
 const errorBanner = document.querySelector("#error-banner");
@@ -78,13 +81,27 @@ function updatePagination(itemsOnPage) {
   nextButton.disabled = offset + pageSize >= total;
 }
 
+function updateExportLink() {
+  const params = new URLSearchParams();
+  if (activeStatus) params.set("status", activeStatus);
+  if (activeSearch) params.set("search", activeSearch);
+  const query = params.toString();
+  document.querySelector("#export-link").href = query
+    ? `/invoices/export.csv?${query}`
+    : "/invoices/export.csv";
+}
+
 async function loadInvoices() {
+  if (activeRequest) activeRequest.abort();
+  const controller = new AbortController();
+  activeRequest = controller;
   errorBanner.hidden = true;
   rows.innerHTML = '<tr><td class="table-message" colspan="5">Cargando facturas…</td></tr>';
   const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
   if (activeStatus) params.set("status", activeStatus);
+  if (activeSearch) params.set("search", activeSearch);
   try {
-    const response = await fetch(`/invoices?${params.toString()}`);
+    const response = await fetch(`/invoices?${params.toString()}`, { signal: controller.signal });
     if (!response.ok) throw new Error(`La API respondió con el código ${response.status}.`);
     const result = await response.json();
     total = result.total;
@@ -92,6 +109,7 @@ async function loadInvoices() {
     updateMetrics(result.items);
     updatePagination(result.items.length);
   } catch (error) {
+    if (error.name === "AbortError") return;
     rows.replaceChildren();
     const errorRow = document.createElement("tr");
     const errorCell = makeCell("table-message", "No se pudieron cargar las facturas.");
@@ -111,10 +129,31 @@ async function loadInvoices() {
 document.querySelector("#status-filter").addEventListener("change", (event) => {
   activeStatus = event.target.value;
   offset = 0;
-  document.querySelector("#export-link").href = activeStatus
-    ? `/invoices/export.csv?status=${encodeURIComponent(activeStatus)}`
-    : "/invoices/export.csv";
+  updateExportLink();
   loadInvoices();
+});
+document.querySelector("#invoice-search").addEventListener("input", (event) => {
+  window.clearTimeout(searchTimer);
+  const value = event.target.value.trim();
+  if (value.length === 1) {
+    if (activeRequest) activeRequest.abort();
+    activeSearch = "";
+    offset = 0;
+    updateExportLink();
+    rows.innerHTML = '<tr><td class="table-message" colspan="5">Escribe al menos 2 caracteres para buscar.</td></tr>';
+    total = 0;
+    document.querySelector("#metric-total").textContent = "—";
+    document.querySelector("#metric-validated").textContent = "—";
+    document.querySelector("#metric-review").textContent = "—";
+    updatePagination(0);
+    return;
+  }
+  activeSearch = value;
+  searchTimer = window.setTimeout(() => {
+    offset = 0;
+    updateExportLink();
+    loadInvoices();
+  }, 300);
 });
 document.querySelector("#refresh-button").addEventListener("click", loadInvoices);
 previousButton.addEventListener("click", () => {

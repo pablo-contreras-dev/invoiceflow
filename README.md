@@ -96,3 +96,7 @@ La demo debe explicar el problema, enseñar un caso válido y otro que requiera 
 ## Licencia
 
 Pendiente de definir.
+
+## Búsqueda en el panel
+
+El panel permite buscar por nombre de proveedor, identificador fiscal o número de factura (mínimo 2 caracteres) y combinar la búsqueda con el filtro de estado. La API admite `GET /invoices?search=demo&status=needs_review`; la descarga CSV conserva esos mismos filtros.

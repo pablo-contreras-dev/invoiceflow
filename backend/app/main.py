@@ -12,7 +12,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
-from sqlalchemy import Date, DateTime, Index, Numeric, String, create_engine, func, select, text
+from sqlalchemy import Date, DateTime, Index, Numeric, String, create_engine, func, or_, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -97,6 +97,24 @@ def get_session():
         yield session
 
 
+def invoice_query_filters(invoice_status: str | None, search: str | None) -> list[object]:
+    filters: list[object] = []
+    if invoice_status is not None:
+        filters.append(InvoiceRecord.status == invoice_status)
+    term = (search or "").strip()
+    if term:
+        escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        filters.append(
+            or_(
+                InvoiceRecord.supplier_name.ilike(pattern, escape="\\"),
+                InvoiceRecord.supplier_tax_id.ilike(pattern, escape="\\"),
+                InvoiceRecord.invoice_number.ilike(pattern, escape="\\"),
+            )
+        )
+    return filters
+
+
 @app.get("/health", tags=["operations"])
 def health(session: Annotated[Session, Depends(get_session)]) -> dict[str, str]:
     try:
@@ -150,14 +168,13 @@ def receive_invoice(payload: InvoiceIn, session: Annotated[Session, Depends(get_
 def list_invoices(
     session: Annotated[Session, Depends(get_session)],
     invoice_status: Annotated[Literal["validated", "needs_review"] | None, Query(alias="status")] = None,
+    search: Annotated[str | None, Query(min_length=2, max_length=120)] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> InvoicePage:
-    query = select(InvoiceRecord)
-    count_query = select(func.count()).select_from(InvoiceRecord)
-    if invoice_status is not None:
-        query = query.where(InvoiceRecord.status == invoice_status)
-        count_query = count_query.where(InvoiceRecord.status == invoice_status)
+    filters = invoice_query_filters(invoice_status, search)
+    query = select(InvoiceRecord).where(*filters)
+    count_query = select(func.count()).select_from(InvoiceRecord).where(*filters)
     records = session.scalars(
         query.order_by(InvoiceRecord.created_at.desc(), InvoiceRecord.id.desc()).limit(limit).offset(offset)
     ).all()
@@ -195,10 +212,13 @@ def csv_cell(value: object) -> str:
 def export_invoices(
     session: Annotated[Session, Depends(get_session)],
     invoice_status: Annotated[Literal["validated", "needs_review"] | None, Query(alias="status")] = None,
+    search: Annotated[str | None, Query(min_length=2, max_length=120)] = None,
 ) -> StreamingResponse:
-    query = select(InvoiceRecord).order_by(InvoiceRecord.created_at.desc(), InvoiceRecord.id.desc())
-    if invoice_status is not None:
-        query = query.where(InvoiceRecord.status == invoice_status)
+    query = (
+        select(InvoiceRecord)
+        .where(*invoice_query_filters(invoice_status, search))
+        .order_by(InvoiceRecord.created_at.desc(), InvoiceRecord.id.desc())
+    )
     output = StringIO(newline="")
     writer = csv.writer(output)
     writer.writerow(
