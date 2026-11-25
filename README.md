@@ -100,3 +100,7 @@ Pendiente de definir.
 ## Idempotencia de entrada
 
 La API acepta `Idempotency-Key` (8–128 caracteres). Si se repite la misma petición con la misma clave, devuelve el registro original con `replayed: true` sin crear otro intento. La clave no puede reutilizarse con un cuerpo distinto (`409 Conflict`). Para registrar deliberadamente otra presentación de una factura ya recibida, envía una clave nueva o no envíes el encabezado; el sistema la marcará como posible duplicado.
+
+## Revisión humana
+
+En el panel, abre una factura pendiente, añade el nombre de quien revisa y una nota opcional, y elige **Aprobar** o **Rechazar**. Las decisiones quedan en un historial consultable en `GET /invoices/{id}/reviews` y se exportan en el CSV. La demo no incluye autenticación; el nombre de quien revisa es texto introducido por el usuario, no una identidad verificada.
