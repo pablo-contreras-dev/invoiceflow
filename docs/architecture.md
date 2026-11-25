@@ -43,7 +43,8 @@ Los importes se representan como cadenas decimales en la entrada para evitar err
 - `POST /invoices`: recibe JSON, valida tipos y límites, compara `net_amount + tax_amount` con `total_amount`, comprueba duplicados y registra cada intento.
 - `GET /invoices/{id}`: consulta el resultado registrado.
 - `GET /invoices?status=needs_review&limit=25&offset=0`: consulta paginada con filtro opcional por estado.
-- `GET /invoices/export.csv`: descarga el registro en CSV compatible con Excel, con filtro opcional por estado.
+- `GET /invoices?search=demo&status=needs_review`: busca sin distinguir mayúsculas en proveedor, identificador fiscal o número de factura; permite combinarlo con el estado y la paginación.
+- `GET /invoices/export.csv`: descarga el registro en CSV compatible con Excel y admite filtros opcionales por estado y búsqueda.
 - `GET /docs`: documentación OpenAPI generada por FastAPI.
 
 El endpoint de recepción devuelve `validated` cuando no encuentra incidencias y `needs_review` cuando detecta diferencias o posibles duplicados. Los motivos actuales son `total_mismatch` y `possible_duplicate`. Los errores de entrada se devuelven como `422`; los errores de persistencia, como `500` y el health check como `503` si no hay conexión con la base de datos.
@@ -62,7 +63,7 @@ El nodo HTTP reenvía el `Idempotency-Key` del emisor. Si no existe, genera `n8n
 
 1. Preparar capturas y datos de demostración para la presentación del portfolio.
 2. Ampliar la auditoría de notificaciones y añadir un modo de reenvío manual.
-3. Añadir búsqueda por proveedor o número de factura.
+3. Validar los flujos en Docker y medir resultados reales de la demo.
 
 ## Seguridad y privacidad de la demo
 

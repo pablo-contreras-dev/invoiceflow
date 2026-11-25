@@ -1,0 +1,6 @@
+.search-control{height:33px;display:flex;align-items:center;gap:7px;padding:0 9px;border:1px solid #e1e6ea;border-radius:6px;background:#fff;color:#7a8793}
+.search-control svg{width:14px;height:14px;flex:0 0 auto}
+.search-control input{width:155px;border:0;outline:0;background:transparent;color:#536170;font:500 10px "DM Sans",sans-serif}
+.search-control input::placeholder{color:#9aa4ad}
+.search-control:focus-within{border-color:#81b8a8;box-shadow:0 0 0 2px #16775f12}
+@media(max-width:650px){.table-heading{flex-wrap:wrap}.table-actions{width:100%}.search-control{flex:1;min-width:90px}.search-control input{width:100%;min-width:0}.filter-control select{min-width:116px;width:116px}}

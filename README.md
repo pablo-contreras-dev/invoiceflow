@@ -100,3 +100,7 @@ Pendiente de definir.
 ## Idempotencia de entrada
 
 La API acepta `Idempotency-Key` (8–128 caracteres). Si se repite la misma petición con la misma clave, devuelve el registro original con `replayed: true` sin crear otro intento. La clave no puede reutilizarse con un cuerpo distinto (`409 Conflict`). Para registrar deliberadamente otra presentación de una factura ya recibida, envía una clave nueva o no envíes el encabezado; el sistema la marcará como posible duplicado.
+
+## Búsqueda en el panel
+
+El panel permite buscar por nombre de proveedor, identificador fiscal o número de factura (mínimo 2 caracteres) y combinar la búsqueda con el filtro de estado. La API admite `GET /invoices?search=demo&status=needs_review`; la descarga CSV conserva esos mismos filtros.

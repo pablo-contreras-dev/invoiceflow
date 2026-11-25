@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/dashboard/styles.css" />
+    <link rel="stylesheet" href="/dashboard/search.css" />
     <script src="/dashboard/app.js" defer></script>
   </head>
   <body>
@@ -74,6 +75,11 @@
           <div class="table-heading">
             <div><h2>Registro de facturas</h2><p>Consulta los últimos envíos procesados por InvoiceFlow.</p></div>
             <div class="table-actions">
+              <label class="search-control">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.8" stroke="currentColor" stroke-width="1.6"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <span class="sr-only">Buscar por proveedor, NIF o número de factura</span>
+                <input id="invoice-search" type="search" minlength="2" maxlength="120" placeholder="Proveedor o nº factura" autocomplete="off" />
+              </label>
               <label class="filter-control"><span class="sr-only">Filtrar por estado</span>
                 <select id="status-filter"><option value="">Todos los estados</option><option value="validated">Validadas</option><option value="needs_review">Revisión pendiente</option></select>
               </label>
