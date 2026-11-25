@@ -5,8 +5,6 @@ services:
       POSTGRES_DB: invoiceflow
       POSTGRES_USER: invoiceflow
       POSTGRES_PASSWORD: invoiceflow
-    ports:
-      - "5432:5432"
     volumes:
       - invoiceflow-db:/var/lib/postgresql/data
     healthcheck:
