@@ -5,11 +5,12 @@ Esta guía recorre la recepción, validación y revisión manual de una factura 
 ## Preparación
 
 1. Desde la raíz del proyecto, inicia `docker compose up --build`.
-2. Abre `http://localhost:5678`, crea el usuario propietario de n8n e importa `automation/invoiceflow-intake.json`.
-3. En **Email review alert**, configura una credencial SMTP de prueba y sustituye las direcciones `.test`. Activa el workflow.
-4. Abre el panel en `http://localhost:8000/dashboard/`.
+2. Abre `http://localhost:5678` y crea el usuario propietario de n8n en el primer acceso. Si el workflow no aparece en tu instancia, importa `automation/invoiceflow-intake.json`.
+3. En **Email review alert**, crea una credencial SMTP con host `mailpit`, puerto `1025`, y sin autenticación ni SSL/TLS. Puedes conservar las direcciones `.test`: Mailpit captura el mensaje localmente y no lo entrega a destinatarios reales.
+4. Activa el workflow y abre `http://localhost:8025` para consultar los avisos capturados.
+5. Abre el panel en `http://localhost:8000/dashboard/`.
 
-El caso validado no necesita SMTP. Los casos que requieren revisión envían un aviso y, por tanto, sí necesitan una credencial SMTP válida para completar el webhook.
+El caso validado no necesita SMTP. Los casos que requieren revisión envían un aviso a Mailpit. Esta configuración es solo para desarrollo local; no la uses como servidor de correo de producción.
 
 ## 1. Recibir una factura válida
 

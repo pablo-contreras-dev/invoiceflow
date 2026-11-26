@@ -78,8 +78,8 @@ Prueba manualmente enviando el contenido de cualquiera de los JSON de `examples/
 ## Integración n8n
 
 1. En n8n, importa `automation/invoiceflow-intake.json`.
-2. En el nodo **Email review alert**, configura una credencial SMTP y cambia los correos de ejemplo `.test` por direcciones de prueba tuyas.
-3. Activa el workflow. Envía un `POST` JSON a `http://localhost:5678/webhook/invoiceflow/intake`.
+2. En el nodo **Email review alert**, configura SMTP con host `mailpit`, puerto `1025`, sin autenticación ni SSL/TLS. Mailpit captura los mensajes localmente; consulta `http://localhost:8025`.
+3. Activa el workflow. Envía un `POST` JSON a `http://localhost:5678/webhook/invoiceflow/intake`. El mensaje se captura localmente y no se entrega a destinatarios reales.
 
 El workflow llama a la API por la red interna de Docker (`http://api:8000`), responde con el registro creado y, si requiere revisión, envía un correo. Los errores HTTP de la API se devuelven al emisor con su código y cuerpo; el correo reintenta hasta tres veces ante fallos. El registro de la factura ya se habrá guardado antes del envío de correo. El workflow se importa inactivo y sin credenciales. `N8N_SECURE_COOKIE=false` en Compose permite el acceso local por HTTP; es una configuración solo para desarrollo local, no para publicar el servicio en Internet.
 
