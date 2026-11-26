@@ -65,6 +65,10 @@ En el Compose local, n8n llama a `http://api:8000` por la red privada de Docker.
 
 El nodo HTTP reenvía el `Idempotency-Key` del emisor. Si no existe, genera `n8n-{executionId}` para que una repetición de la misma ejecución sea idempotente.
 
+### SMTP local de demostración
+
+Compose incluye Mailpit para capturar los avisos del nodo SMTP sin entregarlos a destinatarios reales. En n8n, configura el host `mailpit`, el puerto `1025` y desactiva autenticación y SSL/TLS. La bandeja local se consulta en `http://localhost:8025`; sus puertos se publican solo en `127.0.0.1`. Esta configuración es para desarrollo local, no para producción.
+
 ## Siguiente hito
 
 1. Preparar capturas y datos de demostración para la presentación del portfolio.

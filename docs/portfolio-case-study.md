@@ -15,12 +15,14 @@ Copiar datos de facturas entre correo, hojas de cálculo y sistemas internos cre
 - Las claves de idempotencia evitan crear otro registro cuando se reintenta la misma petición.
 - Un panel permite revisar, aprobar o rechazar incidencias y conservar una nota de decisión.
 - Un historial de auditoría y una exportación CSV facilitan la revisión posterior.
+- Mailpit captura localmente los avisos de revisión para poder demostrar el flujo sin enviar correos reales.
 
 ## Arquitectura
 
 ```mermaid
 flowchart LR
     n8n[Webhook n8n] --> api[API FastAPI]
+    n8n --> mailpit[Mailpit local para avisos]
     api --> db[(PostgreSQL)]
     reviewer[Persona revisora] --> panel[Panel web]
     panel --> api
@@ -30,7 +32,7 @@ flowchart LR
 
 ## Tecnologías demostradas
 
-Python, FastAPI, SQLAlchemy, PostgreSQL, Alembic, n8n, Docker Compose, HTML, CSS, JavaScript y CSV/Excel.
+Python, FastAPI, SQLAlchemy, PostgreSQL, Alembic, n8n, Mailpit, Docker Compose, HTML, CSS, JavaScript y CSV/Excel.
 
 ## Resultados
 
